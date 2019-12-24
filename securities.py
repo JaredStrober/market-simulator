@@ -1,3 +1,5 @@
+from market import market
+
 class Security():
 
     def __init__(self, name, ticker, volume, price, volatility):
@@ -10,9 +12,13 @@ class Security():
         self.add_itself_to_list()
 
 
-    def change_price(self, amount):
-        # Change the price property of a security, round it to two decimal places.
-        self.price += amount
+    def change_price(self):
+        demand = market.demand
+        sentiment = market.sentiment
+        change = market.calculate_change(self.price, market.demand, market.sentiment,
+                                         self.volatility)
+
+        self.price += change
         self.price = round(self.price, 2)
 
 

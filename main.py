@@ -3,11 +3,11 @@ import time
 import threading
 
 from securities import securities_objects
-from market import market
+from services import update_all_prices
 from player import patrik
 
 from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout,
-QApplication, QDialog, QMainWindow, QFrame, QGroupBox, QListWidget)
+QApplication, QDialog, QMainWindow, QFrame, QGroupBox, QListWidget, QLineEdit)
 
 
 class Example(QDialog):
@@ -115,6 +115,23 @@ class Example(QDialog):
 
 #--------------------------------------------------------------------------------------#
 
+    def UI_update_share_prices(self):
+
+        def update_share_prices():
+
+            while True:
+
+                update_all_prices(securities_objects)
+
+                for share, label in zip(securities_objects, self.security_prices_QLabels):
+                    label.setText(str(share.price))
+
+                time.sleep(0.5)
+
+        share_prieces_update_thread = threading.Thread(target=update_share_prices)
+        share_prieces_update_thread.start()
+
+
     # Updating the player's money.
     def UI_update_money(self, player):
 
@@ -130,50 +147,12 @@ class Example(QDialog):
     def popup(self):
         self.dialog = PopupDialog()
         self.dialog.show()
-#--------------------------------------------------------------------------------------#
-
-    def update_all_prices(self, securities_objects):
-        """
-        Function for updating price labels of all securities.
-
-        securities_objects (list): List containing all security objects to be updated.
-        securities_objects (list): List containing QLabels of security prices.
-        """
-
-        while True:
-
-            index = 0
-
-            for security in securities_objects:
-                demand = market.demand
-                sentiment = market.sentiment
-                difference = market.calculate_change(security.price, demand, sentiment, security.volatility)
-                security.change_price(difference)
-                self.security_prices_QLabels[index].setText(str(security.price))
-                index += 1
-
-            time.sleep(1)
-
-
-    def price_update_threading(self, securities_objects):
-        """
-        Declare and run thread for price updating.
-        """
-        price_update_thread = threading.Thread(target=self.update_all_prices, args=(securities_objects,))
-        price_update_thread.start()
 
 #--------------------------------------------------------------------------------------#
 
     def run_functions(self):
-        """
-        Method for grouping and running other non-UI related functions.
-        """
-
-        # Call to the threading function that takes care of periodically updating the prices.
-        self.price_update_threading(securities_objects)
-
-        # Call to the threading function that updates the player's money.
-#        self.money_update_threading(patrik)
+        # Method for grouping and running other non-UI related functions.
+        self.UI_update_share_prices()
         self.UI_update_money(patrik)
 
 #--------------------------------------------------------------------------------------#
@@ -194,8 +173,8 @@ class PopupDialog(QDialog):
         self.setGeometry(self.left, self.top, self.width, self.height)
 
         # Setting the layout
-        layout = QHBoxLayout()
-        self.setLayout(layout)
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
 
         # Create the list of securities.
         self.stocks_list = QListWidget()
@@ -205,7 +184,18 @@ class PopupDialog(QDialog):
 
         self.stocks_list.clicked.connect(self.showitem)
 
-        layout.addWidget(self.stocks_list)
+        # Create the line edit
+        self.vertical = QVBoxLayout()
+
+        self.line_edit_label = QLabel(f"Amount")
+        self.line_edit = QLineEdit()
+
+        self.vertical.addWidget(self.line_edit_label)
+        self.vertical.addWidget(self.line_edit)
+
+        self.layout.addWidget(self.stocks_list)
+        self.layout.addLayout(self.vertical)
+
 
     def showitem(self):
         item = self.stocks_list.currentItem()
@@ -217,24 +207,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     ex = Example()
     sys.exit(app.exec_())
-
-from securities import apple, netflix, netflix
-from market import market
-from player import patrik
-import time
-
-securities = [apple, netflix, netflix]
-
-
-def main():
-
-	for i in range(10):
-		demand = market.demand
-		sentiment = market.sentiment
-		change = market.calculate_change(apple.price, demand, sentiment, apple.volatility)
-		apple.change_price(change)
-		print(apple.price)
-		time.sleep(0.6)
-
-if __name__ == "__main__":
     main()
